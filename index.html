@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="keywords" content="sdd,microservices,slideshow,presentation" />
+    <meta name="description" content="Spec driven development in Microservices by Nikita Galkin" />
+    <title>Best practices of Node.js use in production</title>
+
+    <style>
+        @import url(//fonts.googleapis.com/css?family=PT+Sans&subset=latin,latin-ext);
+        @import url(//fonts.googleapis.com/css?family=PT+Sans&subset=latin,latin-ext);
+        @import url(//fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+        body {
+            font-family: 'PT Sans';
+        }
+        h1, h2, h3 {
+            font-family: 'PT Sans';
+            font-weight: 400;
+            margin-bottom: 0;
+        }
+        .remark-slide-content h1 { font-size: 3em; }
+        .remark-slide-content h2 { font-size: 2em; }
+        .remark-slide-content h3 { font-size: 1.6em; }
+        .footnote {
+            position: absolute;
+            bottom: 3em;
+        }
+        li p { line-height: 1.25em; }
+        .red { color: #fa0000; }
+        .large { font-size: 2em; }
+        a, a > code {
+            color: rgb(249, 38, 114);
+            text-decoration: none;
+        }
+        code {
+            background: #e7e8e2;
+            border-radius: 5px;
+        }
+        .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+        .remark-code-line-highlighted     { background-color: #373832; }
+        .pull-left {
+            float: left;
+            width: 47%;
+        }
+        .pull-right {
+            float: right;
+            width: 47%;
+        }
+        .pull-right ~ p {
+            clear: both;
+        }
+        #slideshow .slide .content code {
+            font-size: 0.8em;
+        }
+        #slideshow .slide .content pre code {
+            font-size: 0.9em;
+            padding: 15px;
+        }
+        .inverse {
+            background: #272822;
+            color: #777872;
+            text-shadow: 0 0 20px #333;
+        }
+        .inverse h1, .inverse h2 {
+            color: #f3f3f3;
+            line-height: 0.8em;
+        }
+
+        /* Slide-specific styling */
+        #slide-inverse .footnote {
+            bottom: 12px;
+            left: 20px;
+        }
+        #slide-how .slides {
+            font-size: 0.9em;
+            position: absolute;
+            top:  151px;
+            right: 140px;
+        }
+        #slide-how .slides h3 {
+            margin-top: 0.2em;
+        }
+        #slide-how .slides .first, #slide-how .slides .second {
+            padding: 1px 20px;
+            height: 90px;
+            width: 120px;
+            -moz-box-shadow: 0 0 10px #777;
+            -webkit-box-shadow: 0 0 10px #777;
+            box-shadow: 0 0 10px #777;
+        }
+        #slide-how .slides .first {
+            background: #fff;
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            z-index: 1;
+        }
+        #slide-how .slides .second {
+            position: relative;
+            background: #fff;
+            z-index: 0;
+        }
+
+        /* Two-column layout */
+        .left-column {
+            color: #777;
+            width: 20%;
+            height: 92%;
+            float: left;
+        }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+            color: #000;
+        }
+        .right-column {
+            width: 75%;
+            float: right;
+            padding-top: 1em;
+        }
+    </style>
+</head>
+<body>
+<textarea id="source">
+layout: true
+class: center, middle, cover
+---
+#Best practices of Node.js use in production
+##Nikita Galkin
+---
+layout: false
+.left-column[
+<img width="100%" src="//avatars0.githubusercontent.com/u/5930544?v=3&s=460">
+  ## Никита Галкин
+]
+.right-column[
+
+# Backend разработчик
+## Люблю Highload, Opensource и Microservices
+## Доклады в 2016:
+### - <a href="http://frameworksdays.com/event/js-frameworks-day-2016/review/spec-driven-development-microservices">Spec driven development in Microservices</a><br>- <a href="https://www.youtube.com/watch?v=eZVFMCoLsyc">Использовании TypeScript для Node.js приложений</a>
+<hr/>
+## <svg aria-hidden="true" class="octicon octicon-mark-github" height="28" version="1.1" viewBox="0 0 16 16" width="28"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59 0.4 0.07 0.55-0.17 0.55-0.38 0-0.19-0.01-0.82-0.01-1.49-2.01 0.37-2.53-0.49-2.69-0.94-0.09-0.23-0.48-0.94-0.82-1.13-0.28-0.15-0.68-0.52-0.01-0.53 0.63-0.01 1.08 0.58 1.23 0.82 0.72 1.21 1.87 0.87 2.33 0.66 0.07-0.52 0.28-0.87 0.51-1.07-1.78-0.2-3.64-0.89-3.64-3.95 0-0.87 0.31-1.59 0.82-2.15-0.08-0.2-0.36-1.02 0.08-2.12 0 0 0.67-0.21 2.2 0.82 0.64-0.18 1.32-0.27 2-0.27 0.68 0 1.36 0.09 2 0.27 1.53-1.04 2.2-0.82 2.2-0.82 0.44 1.1 0.16 1.92 0.08 2.12 0.51 0.56 0.82 1.27 0.82 2.15 0 3.07-1.87 3.75-3.65 3.95 0.29 0.25 0.54 0.73 0.54 1.48 0 1.07-0.01 1.93-0.01 2.2 0 0.21 0.15 0.46 0.55 0.38C13.71 14.53 16 11.53 16 8 16 3.58 12.42 0 8 0z"></path></svg> [galk-in](//github.com/galk-in/) <img src="//www.npmjs.com/static/images/npm-logo.svg" height="28" alt="npm logo"> [galkin](//www.npmjs.com/~galkin) <img src="//upload.wikimedia.org/wikipedia/en/thumb/9/9f/Twitter_bird_logo_2012.svg/1259px-Twitter_bird_logo_2012.svg.png" height="28"> [galk_in](//twitter.com/galk_in) <img src="http://www.hoeghautoliners.com/_public/theme-hoegh/img/svg/logo-linkedin.svg" height="28"> [nikitagalkin](//ua.linkedin.com/in/nikitagalkin)
+
+]
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+  ## Основная идея:
+  # Cледуйте <a href="https://12factor.net">The Twelve Factors</a>
+---
+layout: false
+# Инструменты
+
+  * # <a href="https://nodejs.org/">Node.js</a>
+  * # <a href="https://www.npmjs.com">npm</a> или <a href="https://yarnpkg.com">yarn</a>
+  * # <a href="https://pm2.keymetrics.io">pm2</a>
+  * # <a href="https://github.com/creationix/nvm">nvm</a>
+---
+# PM2
+
+  * ## Автозапуск
+  * ## Мониторинг
+  * ## Кластеринг
+  * ## Деплой
+
+
+  <img width="100%" src="http://pm2.keymetrics.io/images/pm2-list.png">
+
+---
+# Уровни реализации
+
+  * ## Процесс (ваше приложение включая его код)
+  * ## Сервис (база данных, очередь и т.д.)
+  * ## Менеджер процессов (runner ваших процессов)
+  * ## Операционная система
+  * ## Инфраструктура
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# I. Codebase
+---
+layout: false
+# Кодовая база
+* ## Одно приложение == один репозиторий
+* ## Повторное использование кода через пакеты
+* ## Храним исходники, а не скомпилированный код
+
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# II. Dependencies
+---
+layout: false
+# Зависимости
+* ## Явное объявление используемых пакетов
+* ## Использование shrinkwrap или yarn.lock
+
+  ## Пример решение проблем с shrinkwrap
+```json
+  ...
+  "dependencies": {
+    "@slack/client": "^3.5.0",
+    "adm-zip": "^0.4.7",
+    "amqplib": "0.5.1",
+    "async": "*"
+  },
+  "optionalDependencies": {
+    "fsevents": "*"
+  }
+```
+
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# III. Config
+---
+layout: false
+# Конфигурация
+
+* ## Используйте конфигурацию из среды выполнения (env vars)
+* ## Контролируйте на уровне приложения - <a href="https://www.npmjs.com/package/dotenv-safe">dotenv-safe</a>
+* ## Проставлйте на уровне pm2.json
+* ## Или используйте <a href="http://microservices.io/patterns/service-registry.html">service registry</a>
+---
+ <img width="100%" src="http://dl4.joxi.net/drive/2017/01/21/0018/1468/1197500/00/2a878a708d.png">
+---
+  `pm2 start apps.json`
+
+ ```json
+  "apps": [
+    {
+      "name": "futurestudio-homepage",
+      "script": "./homepage/server.js",
+      "instances": 2,
+      "exec_mode": "cluster",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+      }
+    },
+    {
+      "name": "blog",
+      "script": "./blog/index.js",
+      "instances": 1,
+      "exec_mode": "fork",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "4000",
+      }
+    }
+  ]
+}
+ ```
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# IV. Backing services
+---
+layout: false
+# Сторонние службы
+* ## Считайте сторонние службы подключаемыми ресурсами
+* ## Следите за их доступностью
+* ## Не различайте локальную службу и удаленную
+* ## Реализовывайте фичи на уровне службы, а не на уровне приложения
+
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# V. Build, release, run
+---
+layout: false
+* ## **Этап сборки** – это трансформация, которая преобразует репозиторий кода в исполняемый пакет.
+* ## **Этап релиза** принимает сборку, полученную на этапе сборки, и объединяет её с текущей конфигурацией развёртывания.
+* ## **Этап выполнения** (также известный как “runtime”) запускает приложение
+---
+# pm2
+
+* ## Есть deploy. Для этого используется ecosystem.json
+* ## transpilers не работают в cluster mode
+* ## Есть мониторинг и метрики
+<img src="http://dl4.joxi.net/drive/2017/01/21/0018/1468/1197500/00/6b56dfe64d.png"/>
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# VI. Processes (stateless)
+---
+layout: false
+# Не храните состояние, это позволит
+
+* ## Использовать pm2 cluster
+* ## Использовать кэш
+
+# Если надо хранить состояние, то
+* ## Token и хранилище сессий
+* ## JWT
+* ## Решайте инфраструктурой
+---
+# Web-sockets example
+<img src="http://dl3.joxi.net/drive/2017/01/21/0018/1468/1197500/00/acae10f51e.png"/>
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# VII. Port binding
+## Используйте PORT из env vars.
+---
+# VIII. Concurrency
+---
+layout: false
+# Параллелизм
+* ## Не демонизируйте ваше приложение, а используйте менеджер процессов
+* ## Выполняйте длительные операции ассинхронно в другом процессе
+* ## Используйте очереди, например RabbitMQ
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# IX. Disposability
+---
+layout: false
+# Утилизируемость
+* ## Думайте не только как включить, но и как выключить
+* ## Завершайте обработку текущей задачи
+* ## Помните, что у вас ограничено время на завершение задачи
+* ## Корректно отсоединяйтесь от сервисов
+* ## Логируйте начало остановки и ее завершение
+---
+# Пример graceful shutdown
+<img src="http://dl3.joxi.net/drive/2017/01/21/0018/1468/1197500/00/35ef3f63fa.png"/>
+
+Так же пакет <a href="https://www.npmjs.com/package/death">death</a>
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# X. Dev/prod parity
+---
+layout: false
+# Эквивалентность окружений
+* ## Одинаковые версии для сервисов
+* ## <a href="https://github.com/creationix/nvm">nvm</a> для версии Node.js
+* ## <a href="https://www.docker.com/">Docker</a>
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# XI. Logs
+---
+layout: false
+# Логирование
+* ## Используйте только stdout/stderr
+* ## Логируйте в json
+* ## Для ротации и отправки логов используйте pm2/инфраструктуры
+* ## Библиотеки <a href="https://www.npmjs.com/package/winston">winston</a> и <a href="https://www.npmjs.com/package/bunyan">
+---
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# XII. Admin processes
+---
+layout: false
+# Администрирование
+* ## Используйте sh скрипты
+* ## Используйте миграции
+* ## Храните ваши админ-скрипты в папке bin
+
+<img src="http://dl4.joxi.net/drive/2017/01/21/0018/1468/1197500/00/cf61a2df1f.png">
+---
+# Вопросы?
+
+## Twitter galk_in
+## Email nikita@galk.in</textarea>
+<script src="//remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>
+    var hljs = remark.highlighter.engine;
+</script>
+<script>
+    var slideshow = remark.create({
+        ratio: '16:9',
+        highlightStyle: 'monokai',
+        highlightLanguage: 'javascript',
+        highlightLines: true,
+        countIncrementalSlides: false
+    }) ;
+</script>
+</body>
+</html>
+
